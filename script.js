@@ -17,22 +17,23 @@ let state = {
 // --- Storage Service (Server-Side) ---
 async function loadData() {
     try {
-        const response = await fetch('/api/data');
-        if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data)) {
-                state.inputs = data;
-                // Re-render if application is already initialized/displayed
-                // If this is called during init, the caller will render independently or wait for this.
-                // However, renderApp is safe to call repeatedly.
-                renderApp();
-            }
-        } else {
-            console.error("Server responded with error:", response.status);
-            // Fallback or alert?
+        const response = await fetch("database.json"); // ✅ local file, not API
+
+        if (!response.ok) {
+            throw new Error("Failed to load database.json");
         }
+
+        const data = await response.json();
+
+        if (Array.isArray(data)) {
+            state.inputs = data;
+            renderApp(); // re-render UI
+        } else {
+            console.error("Data format is invalid (expected array)");
+        }
+
     } catch (e) {
-        console.error("Failed to load server data", e);
+        console.error("Failed to load data", e);
     }
 }
 
@@ -474,5 +475,6 @@ window.handleGenerate = async () => {
         }
     }, 100);
 };
+
 
 
