@@ -13,11 +13,23 @@ let state = {
     error: null,
 };
 
+// Helper function to create an empty class
+function createEmptyClass() {
+    return {
+        id: Date.now().toString(),
+        name: 'Class 1',
+        subjectsRaw: '',
+        teachersRaw: '',
+        roomsRaw: ''
+    };
+}
+
 // --- Storage Service ---
 // --- Storage Service (Server-Side) ---
+// Manual database import - called ONLY when user clicks "Import DB" button
 async function loadData() {
     try {
-        const response = await fetch("database.json"); // ✅ local file, not API
+        const response = await fetch("database.json");
 
         if (!response.ok) {
             throw new Error("Failed to load database.json");
@@ -25,15 +37,17 @@ async function loadData() {
 
         const data = await response.json();
 
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
             state.inputs = data;
-            renderApp(); // re-render UI
+            renderApp();
+            alert("Database imported successfully! " + data.length + " classes loaded.");
         } else {
-            console.error("Data format is invalid (expected array)");
+            alert("Database file is empty or invalid.");
         }
 
     } catch (e) {
-        console.error("Failed to load data", e);
+        console.error("Failed to import database", e);
+        alert("Could not import database. Make sure database.json exists.");
     }
 }
 
@@ -207,13 +221,17 @@ function generateTimetables(classes) {
 
 // --- UI Logic ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Attempt to load previous session
     const savedUser = localStorage.getItem('autoscheduler_user');
+
     if (savedUser) {
         state.isAuthenticated = true;
         state.user = savedUser;
-        loadData();
+
+        // ✅ DO NOT auto-load database on GitHub Pages
+        // Start with a fresh state - one empty class
+        state.inputs = [createEmptyClass()];
     }
+
     renderApp();
 });
 
@@ -258,7 +276,8 @@ function renderLogin(root) {
             state.isAuthenticated = true;
             state.user = u;
             localStorage.setItem('autoscheduler_user', u);
-            loadData();
+            // ✅ Start fresh - don't auto-load database
+            state.inputs = [createEmptyClass()];
             renderApp();
         } else {
             document.getElementById('loginError').classList.remove('hidden');
@@ -475,6 +494,5 @@ window.handleGenerate = async () => {
         }
     }, 100);
 };
-
 
 
