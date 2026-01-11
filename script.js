@@ -51,32 +51,22 @@ async function loadData() {
     }
 }
 
-async function saveData() {
+// Save to localStorage (works on GitHub Pages - no server needed)
+function saveData() {
     try {
-        // Optimistic UI update could happen here, or wait for server
-        const response = await fetch('/api/data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(state.inputs)
-        });
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.inputs));
 
-        if (response.ok) {
-            console.log("Data saved successfully");
-            // Simple visual feedback
-            const header = document.querySelector('h1.text-3xl'); // "Setup Classes" header
-            if (header) {
-                const originalText = header.innerText;
-                const statusSpan = document.createElement('span');
-                statusSpan.className = "text-sm text-green-500 ml-4 font-normal";
-                statusSpan.innerText = "(Saved)";
-                header.appendChild(statusSpan);
-                setTimeout(() => statusSpan.remove(), 1000);
-            }
-        } else {
-            console.error("Server failed to save", response.status);
+        // Visual feedback
+        const header = document.querySelector('h1.text-3xl');
+        if (header && !header.querySelector('.save-status')) {
+            const statusSpan = document.createElement('span');
+            statusSpan.className = "text-sm text-green-500 ml-4 font-normal save-status";
+            statusSpan.innerText = "(Saved)";
+            header.appendChild(statusSpan);
+            setTimeout(() => statusSpan.remove(), 1000);
         }
     } catch (e) {
-        console.error("Failed to save server data", e);
+        console.warn("Could not save to localStorage", e);
     }
 }
 
@@ -227,9 +217,24 @@ document.addEventListener('DOMContentLoaded', () => {
         state.isAuthenticated = true;
         state.user = savedUser;
 
-        // ✅ DO NOT auto-load database on GitHub Pages
-        // Start with a fresh state - one empty class
-        state.inputs = [createEmptyClass()];
+        // ✅ Try to restore from localStorage (user's own saved work)
+        // This does NOT load database.json - that requires clicking "Import DB"
+        const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    state.inputs = parsed;
+                } else {
+                    state.inputs = [createEmptyClass()];
+                }
+            } catch (e) {
+                state.inputs = [createEmptyClass()];
+            }
+        } else {
+            // First time user - start fresh
+            state.inputs = [createEmptyClass()];
+        }
     }
 
     renderApp();
